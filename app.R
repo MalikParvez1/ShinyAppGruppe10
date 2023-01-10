@@ -1,4 +1,3 @@
-shinyApp(ui = ui, server = server)
 #
 # This is a Shiny web application. You can run the application by clicking
 # the 'Run App' button above.
@@ -13,7 +12,13 @@ library(shinydashboard)
 library(quantmod)
 library(ggplot2)
 library(dplyr)
-covid_19_df <- na.omit(read.csv("/Users/eshmamdulal/Downloads/RKI_COVID19_Berlin.csv"))
+library(lubridate)
+
+covid_19_df <- na.omit(read.csv("./RKI_COVID19_Berlin.csv"))
+
+dates <- covid_19_df$Meldedatum
+unique_converted_dates <- unique(ymd_hms(dates))
+
 
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
@@ -46,7 +51,7 @@ ui <- dashboardPage(
         
         box(
           "Box content here", br(), "More box content",
-          sliderInput("slider", "Slider input:", 1, 100, 50),
+          sliderInput("slider", "Slider input:", min = min(unique_converted_dates), max = max(unique_converted_dates), value = max(unique_converted_dates)),
           textInput("text", "Text input:")
         )
       )
