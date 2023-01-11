@@ -21,6 +21,7 @@ dates <- covid_19_df$Meldedatum
 unique_converted_dates <- unique(ymd_hms(dates))
 
 
+
 # Define UI for application that draws a histogram
 ui <- dashboardPage(
   # tags$script(src="https://kit.fontawesome.com/a00c56db4c.js"),
@@ -56,11 +57,13 @@ ui <- dashboardPage(
                       min = min(unique_converted_dates),
                       max = max(unique_converted_dates),
                       value = max(unique_converted_dates)),
-          textInput("text", "Text input:")
         )
       )
       ),
-      tabItem(tabName = "infizierteNachAlter", h2("Content infizierte nach Alter")),
+      tabItem(tabName = "infizierteNachAlter", h2("Content infizierte nach Alter"),
+              selectInput("display", "Display:", c("Absolute numbers" = "absolute", "Relative percentages" = "relative")),
+                                                  column(6, plotOutput("ageGroupPlot")),
+                                                  column(6, tableOutput("ageGroupTable"))),
       tabItem(tabName = "infizierteNachGeschlecht", h2("Content Infizierte nach Geschlecht")),
       tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"))
     )
@@ -75,6 +78,7 @@ server <- function(input, output) {
   output$plot1 <- renderPlot({
   })
   
+  # Overview
   output$infoBox_cases <- renderInfoBox({
     selected_date <- as.Date(input$slider)
     cases <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"])
@@ -102,6 +106,26 @@ server <- function(input, output) {
     activeCases <- cases - (recovered + deaths)
     infoBox("Aktive Fälle:", activeCases, icon = icon("ambulance"), color = "blue", width = 3)
   })
+  
+  
+  # Infizierte nach Alter
+  output$ageGroupPlot <- renderPlot({
+    ages <- covid_19_df$Altersgruppe
+    cases <- covid_19_df$AnzahlFall
+    age_cases_sum <- aggregate(cases, by = list(ages), sum)
+    colnames(age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
+    age_cases_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
+    
+    barplot(age_cases_sum$Gesamtinfektionen, names.arg = age_cases_sum$Altersgruppe, xlab = "Altersgruppe", 
+           ylab = "Gesamtinfektionen", main = "Infektionen nach Altersgruppe")
+  })
+  output$ageGroupTable <- renderTable({
+    age_cases_sum
+  }, container = div(style = "background-color: white;"))
+  
+    
+  
+  
   
 }
 
