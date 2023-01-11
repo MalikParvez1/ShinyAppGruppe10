@@ -60,10 +60,12 @@ ui <- dashboardPage(
         )
       )
       ),
-      tabItem(tabName = "infizierteNachAlter", h2("Content infizierte nach Alter"),
-              selectInput("display", "Display:", c("Absolute numbers" = "absolute", "Relative percentages" = "relative")),
-                                                  column(6, plotOutput("ageGroupPlot")),
-                                                  column(6, tableOutput("ageGroupTable"))),
+      tabItem(tabName = "infizierteNachAlter", h2("Infizierte nach Alter"),
+              selectInput("display", "Darstellung:", c("Absolute Werte" = "absolute", "Relative Werte" = "relative")),
+                                                  fluidRow(
+                                                  #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
+                                                  column(width = 6,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%")),
+                                                  column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable")))),
       tabItem(tabName = "infizierteNachGeschlecht", h2("Content Infizierte nach Geschlecht")),
       tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"))
     )
@@ -116,12 +118,43 @@ server <- function(input, output) {
     colnames(age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
     age_cases_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
     
-    barplot(age_cases_sum$Gesamtinfektionen, names.arg = age_cases_sum$Altersgruppe, xlab = "Altersgruppe", 
-           ylab = "Gesamtinfektionen", main = "Infektionen nach Altersgruppe")
+    if(input$display == "absolute"){
+      # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
+      Agegroup_Case_Plot<-ggplot(data = age_cases_sum, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Gesamtinfektionen), vjust=1.6, color="white",
+                  position = position_dodge(0.9), size=3.5)+
+        scale_fill_brewer(palette = "Blues")+
+        theme_minimal()
+      Agegroup_Case_Plot
+    } else {
+      propTable <- round(prop.table(age_cases_sum$Gesamtinfektionen)*100,2)
+      Agegroup_Case_Plot<-ggplot(data = age_cases_sum, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=propTable), vjust=1.6, color="white",
+                  position = position_dodge(0.9), size=3.5)+
+        scale_fill_brewer(palette = "Blues")+
+        theme_minimal()
+      Agegroup_Case_Plot
+    }
   })
+  
+  
   output$ageGroupTable <- renderTable({
-    age_cases_sum
-  }, container = div(style = "background-color: white;"))
+    tableAge <- covid_19_df$Altersgruppe
+    tableCases <- covid_19_df$AnzahlFall
+    table_age_cases_sum <- aggregate(cases, by = list(ages), sum)
+    colnames(table_age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
+    table_age_cases_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
+    if(input$display == "absolute"){
+      colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Anzahl der Gesamtinfektionen")
+      table_age_cases_sum
+    } else{
+      table_age_cases_sum$Gesamtinfektionen <- round(prop.table(age_cases_sum$Gesamtinfektionen)*100,2)
+      colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Gesamtinfektionen in Prozent")
+      table_age_cases_sum
+    }
+  })
   
     
   
