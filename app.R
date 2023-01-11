@@ -18,6 +18,7 @@ covid_19_df <- na.omit(read.csv("./RKI_COVID19_Berlin.csv"))
 
 # Dataframes
 dates <- covid_19_df$Meldedatum
+converted_dates <- ymd_hms(dates)
 unique_converted_dates <- unique(ymd_hms(dates))
 
 
@@ -45,11 +46,9 @@ ui <- dashboardPage(
         infoBoxOutput("infoBox_recovered"),
         infoBoxOutput("infoBox_deaths"),
         infoBoxOutput("infoBox_activeCases"),
-        
-        # TODO: Umwandeln der statischen InfoBoxen in dynamische [infoBoxOutput]
       ),
       fluidRow(
-        box(plotOutput("plot1")),
+        box(plotOutput("lineplot")),
         
         box(
           "Box content here", br(), "More box content",
@@ -61,7 +60,7 @@ ui <- dashboardPage(
       )
       ),
       tabItem(tabName = "infizierteNachAlter", h2("Infizierte nach Alter"),
-              selectInput("display", "Darstellung:", c("Absolute Werte" = "absolute", "Relative Werte" = "relative")),
+              selectInput("display", "Display:", c("Absolute Werte" = "absolute", "Relative Werte" = "relative")),
                                                   fluidRow(
                                                   #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
                                                   column(width = 6,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%")),
@@ -77,8 +76,21 @@ ui <- dashboardPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
-  output$plot1 <- renderPlot({
+  output$lineplot <- renderPlot({
+    selected_date <- as.Date(input$slider)
+    Infektionen <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
+    Tode <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"]
+    Zeitraum <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Meldedatum"]
+    range <- covid_19_df$Meldedatum
+    crd_sum <- data.frame(Infektionen, Tode, Zeitraum)
+    lineplot <- ggplot(data = crd_sum, aes(x=Zeitraum))+
+      geom_bar(aes(y=Infektionen, fill = "Infektionen"), stat = "identity")+
+      geom_bar(aes(y=Tode, fill = "Tode"), stat = "identity", position = "stack")+
+      scale_fill_manual(values = c("Infektionen" = "purple", "Tode" = "red"))+
+      theme_minimal()
+    lineplot
   })
+  
   
   # Overview
   output$infoBox_cases <- renderInfoBox({
