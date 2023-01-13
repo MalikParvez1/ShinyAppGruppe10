@@ -47,7 +47,6 @@ ui <- dashboardPage(
         infoBoxOutput("infoBox_cases"),
         infoBoxOutput("infoBox_recovered"),
         infoBoxOutput("infoBox_deaths"),
-        infoBoxOutput("infoBox_activeCases"),
       ),
       fluidRow(
         box(plotOutput("lineplot")),
@@ -101,11 +100,12 @@ server <- function(input, output) {
     crd_sum <- data.frame(Infektionen, Tode, Zeitraum)
     start_date <- as.Date("2020-02-12")
     lineplot <- ggplot(data = crd_sum, aes(x=Zeitraum))+
-      geom_line(aes(y=Infektionen, color = "Anzahl"))+
+      geom_line(aes(y=Infektionen, color = "Infektionen"))+
       geom_line(aes(y=Tode, color = "Tode"))+
       guides(color = guide_legend(title = "Legende"))+
+      labs(y = "Anzahl")+
       scale_x_date(limits= c(start_date, selected_date), breaks = c(start_date, selected_date), labels = c(start_date, selected_date))+
-      scale_color_manual(values = c("Anzahl" = "purple", "Tode" = "red"))+
+      scale_color_manual(values = c("Infektionen" = "#DD4B39", "Tode" = "#6D6A6A"))+
       theme_minimal()
     lineplot
   })
@@ -116,7 +116,7 @@ server <- function(input, output) {
   output$infoBox_cases <- renderInfoBox({
     selected_date <- as.Date(input$slider)
     cases <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"])
-    infoBox("Anzahl Ansteckungen:", cases, icon = icon("heartbeat"), color = "purple", width = 3)
+    infoBox("Anzahl Ansteckungen:", cases, icon = icon("heartbeat"), color = "red", width = 3)
   })
   
   output$infoBox_recovered <- renderInfoBox({
@@ -128,17 +128,7 @@ server <- function(input, output) {
   output$infoBox_deaths <- renderInfoBox({
     selected_date <- as.Date(input$slider)
     deaths <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"])
-    infoBox("Anzahl Todesfälle:", deaths, icon = icon("skull"), color = "red", width = 3)
-  })
-  
-  # TODO: Aktive Fälle anpassen
-  output$infoBox_activeCases <- renderInfoBox({
-    selected_date <- as.Date(input$slider)
-    recovered <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlGenesen"])
-    cases <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"])
-    deaths <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"])
-    activeCases <- cases - (recovered + deaths)
-    infoBox("Aktive Fälle:", activeCases, icon = icon("ambulance"), color = "blue", width = 3)
+    infoBox("Anzahl Todesfälle:", deaths, icon = icon("skull"), color = "black", width = 3)
   })
   
   
