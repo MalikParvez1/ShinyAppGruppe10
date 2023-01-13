@@ -13,8 +13,10 @@ library(quantmod)
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(readr)
+library(DT)
 
-covid_19_df <- na.omit(read.csv("./RKI_COVID19_Berlin.csv"))
+covid_19_df <- na.omit(read.csv("/Users/eshmamdulal/Downloads/RKI_COVID19_Berlin.csv"))
 
 # Dataframes
 dates <- covid_19_df$Meldedatum
@@ -61,11 +63,24 @@ ui <- dashboardPage(
       ),
       tabItem(tabName = "infizierteNachAlter", h2("Infizierte nach Alter"),
               selectInput("display", "Display:", c("Absolute Werte" = "absolute", "Relative Werte" = "relative")),
-                                                  fluidRow(
-                                                  #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
-                                                  column(width = 6,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%")),
-                                                  column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable")))),
-      tabItem(tabName = "infizierteNachGeschlecht", h2("Content Infizierte nach Geschlecht")),
+              fluidRow(
+                #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
+                column(width = 6,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%")),
+                column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable")))),
+      
+      tabItem(tabName = "infizierteNachGeschlecht", h2("Covid-Infizierte nach Geschlecht"),
+              sidebarLayout(
+                sidebarPanel(
+                  selectInput(inputId = "geschlecht",
+                              label = "Geschlecht auswählen:",
+                              choices = c("Männlich" = "männlich", "Weiblich" = "weiblich")),
+                ),
+                mainPanel(
+                  plotOutput("sexGroupPlot"),
+                  DT::dataTableOutput("geschlechterTabelle")
+                )
+              )),
+      
       tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"))
     )
   )
@@ -168,12 +183,45 @@ server <- function(input, output) {
     }
   })
   
+  output$sexGroupPlot <- renderPlot({
+    maennlich <- subset(alter, alter$Geschlecht=="M")
+    weiblich <- subset(alter, alter$Geschlecht=="W")
     
+    #sortieren, um sicher zu sein
+    maennlich_sortiert <- maennlich[order(maennlich$Alter),]
+    weiblich_sortiert <- weiblich[order(weiblich$Alter),]
+    
+    #alterklasse simmulieren um darüber aggregieren zu koennen
+    gruppe <- c(rep("A00-A04",times=5), rep("A05-A14",times=10), rep("A15-A34",times=20), rep("A35-A59",times=25), rep("A60-A79",times=20),rep("A80+",times=21))
+    
+    #spalte hinzugefuegt
+    maennlich_sortiert$new = gruppe 
+    weiblich_sortiert$new  = gruppe
+    
+    #aggregation
+    maennlich_aggregiert <- aggregate(x=maennlich_sortiert$AnzahlBevoelkerung, by=list(maennlich_sortiert$new), FUN=sum)
+    weiblich_aggregiert <- aggregate(x=weiblich_sortiert$AnzahlBevoelkerung, by=list(weiblich_sortiert$new), FUN=sum)
+    
+    
+    #weiblich_aggregiert_nach_Altersgruppe <- weiblich_aggregiert
+    
+    ggplot(data = weiblich_aggregiert, aes(x=weiblich_aggregiert$Group.1, y=weiblich_aggregiert$x)) + 
+      geom_bar(stat = "identity", color = "steelblue", fill = "steelblue") +
+      labs(
+        title = "Infizierte nach Geschlecht",
+        x = "Anzahl der Infizierten",
+        y = "Altergruppen"
+      )
+  })
   
   
-  
+  output$geschlechterTabelle = 
+    DT::renderDataTable({
+      DT::datatable(covid_aggregiert_filter_m, 
+                    colnames = c("Altersgruppe", "Weiblich infizierte"),
+                    rownames = FALSE)
+    })
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
