@@ -1,0 +1,13 @@
+name: ShinyAppGruppe10
+title: ShinyAppGruppe10
+username:
+account: bremaldul
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7957982
+bundleId: 6722969
+url: https://bremaldul.shinyapps.io/shinyappgruppe10/
+when: 1673466622.65397
+lastSyncTime: 1673466622.65398
+asMultiple: FALSE
+asStatic: FALSE

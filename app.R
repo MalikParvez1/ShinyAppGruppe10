@@ -16,7 +16,7 @@ library(lubridate)
 library(readr)
 library(DT)
 
-covid_19_df <- na.omit(read.csv("/Users/eshmamdulal/Downloads/RKI_COVID19_Berlin.csv"))
+covid_19_df <- na.omit(read.csv("./RKI_COVID19_Berlin.csv"))
 
 # Dataframes
 dates <- covid_19_df$Meldedatum
@@ -95,16 +95,21 @@ server <- function(input, output) {
     selected_date <- as.Date(input$slider)
     Infektionen <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
     Tode <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"]
-    Zeitraum <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Meldedatum"]
+    rawZeitraum <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Meldedatum"]
+    Zeitraum <- as.Date(rawZeitraum)
     range <- covid_19_df$Meldedatum
     crd_sum <- data.frame(Infektionen, Tode, Zeitraum)
+    start_date <- as.Date("2020-02-12")
     lineplot <- ggplot(data = crd_sum, aes(x=Zeitraum))+
-      geom_bar(aes(y=Infektionen, fill = "Infektionen"), stat = "identity")+
-      geom_bar(aes(y=Tode, fill = "Tode"), stat = "identity", position = "stack")+
-      scale_fill_manual(values = c("Infektionen" = "purple", "Tode" = "red"))+
+      geom_line(aes(y=Infektionen, color = "Anzahl"))+
+      geom_line(aes(y=Tode, color = "Tode"))+
+      guides(color = guide_legend(title = "Legende"))+
+      scale_x_date(limits= c(start_date, selected_date), breaks = c(start_date, selected_date), labels = c(start_date, selected_date))+
+      scale_color_manual(values = c("Anzahl" = "purple", "Tode" = "red"))+
       theme_minimal()
     lineplot
   })
+  
   
   
   # Overview
