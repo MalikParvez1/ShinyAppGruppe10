@@ -85,7 +85,8 @@ ui <- dashboardPage(
       
       tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"),
               fluidRow(
-                box(plotOutput("districtPlot"))
+                box(plotOutput("districtPlot")),
+                box(plotOutput("districtPlot2"))
               ),
               fluidRow(              
                 box(
@@ -297,6 +298,63 @@ server <- function(input, output) {
       District_Case_Plot
     }
   })
+  
+  output$districtPlot2 <- renderPlot({
+    Datum <- as.Date(input$districtslider)
+    cases <- covid_19_df[covid_19_df$Meldedatum <= Datum, "AnzahlFall"]
+    deaths <- covid_19_df[covid_19_df$Meldedatum <= Datum, "AnzahlTodesfall"]
+    districtNames <- covid_19_df[covid_19_df$Meldedatum <= Datum, "Landkreis"]
+    districtNames <- sub("SK Berlin ", "", districtNames)
+    districtCases <- aggregate(cases, by = list(districtNames), sum)
+    districtDeaths <- aggregate(deaths, by = list(districtNames), sum)
+    colnames(districtCases) <- c("Bezirk", "Inzidenz")
+    colnames(districtDeaths) <- c("Bezirk", "Tode")
+    einwohner <- c(339405, 291851, 304485, 281566, 391831, 329037, 418249, 267398, 251588, 310454, 351567, 284450)
+    
+    
+    if(input$district_displaymode2 == "districtCases") {
+      districtCases$Inzidenz <- round(districtCases$Inzidenz / einwohner * 1000, 1)
+      # Hat die Idee gebracht, um aufsteigend zu sortieren. https://stackoverflow.com/questions/3744178/ggplot2-sorting-a-plot
+      districtCases <- districtCases[order(districtCases$Inzidenz),]
+      districtCases$Bezirk <- factor(districtCases$Bezirk, levels = districtCases$Bezirk)
+      
+      
+      districtperT <- ggplot(districtCases, aes(x = Bezirk, y = Inzidenz, fill = Inzidenz)) +
+        geom_bar(color = "black", linewidth = 0.5, linetype = 1, stat = "identity") +
+        geom_text(aes(label=Bezirk), color="white", angle = 90, vjust = 0.5, hjust = 1.10,
+                  position = position_dodge(0.5), size=3.5)+
+        geom_text(aes(label=Inzidenz), vjust=-0.5, color="black",
+                  position = position_dodge(0.9), size=2.5)+
+        scale_fill_gradient(low = "#ff9a91", high = "#fc3d3d") +
+        theme(axis.text.x = element_text(color = "transparent")) +
+        ggtitle("Infektionen pro 1000 Einwohner") +
+        guides(fill = guide_colourbar(title = "Inzidenz"))
+      
+      districtperT
+  } else {
+      districtDeaths$Tode <- round(districtDeaths$Tode / einwohner * 1000, 1)
+      # Hat die Idee gebracht, um aufsteigend zu sortieren. https://stackoverflow.com/questions/3744178/ggplot2-sorting-a-plot
+      districtDeaths <- districtDeaths[order(districtDeaths$Tode),]
+      districtDeaths$Bezirk <- factor(districtDeaths$Bezirk, levels = districtDeaths$Bezirk)
+      
+      districtperT <- ggplot(districtDeaths, aes(x = Bezirk, y = Tode, fill = Tode)) +
+        geom_bar(color = "black", linewidth = 0.5, linetype = 1, stat = "identity") +
+        geom_text(aes(label=Bezirk), color="white", angle = 90, vjust = 0.5, hjust = 1.10,
+                  position = position_dodge(0.5), size=3.5)+
+        geom_text(aes(label=Tode), vjust=-0.5, color="black",
+                  position = position_dodge(0.9), size=2.5)+
+        scale_fill_gradient(low = "#ff9a91", high = "#fc3d3d") +
+        theme(axis.text.x = element_text(color = "transparent")) +
+        ggtitle("Tode pro 1000 Einwohner") +
+        guides(fill = guide_colourbar(title = "Inzidenz"))
+      
+      
+      
+      
+        districtperT
+  }
+  })
+    
   
 }
 
