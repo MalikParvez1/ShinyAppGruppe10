@@ -80,7 +80,17 @@ ui <- dashboardPage(
                 )
               )),
       
-      tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"))
+      tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"),
+              fluidRow(
+                box(plotOutput("districtPlot"))
+              ),
+              box(
+                "Box content here", br(), "More box content",
+                sliderInput("districtslider", "Slider input:",
+                            min = min(unique_converted_dates),
+                            max = max(unique_converted_dates),
+                            value = max(unique_converted_dates)),
+              ))
     )
   )
 )
@@ -165,14 +175,14 @@ server <- function(input, output) {
   output$ageGroupTable <- renderTable({
     tableAge <- covid_19_df$Altersgruppe
     tableCases <- covid_19_df$AnzahlFall
-    table_age_cases_sum <- aggregate(cases, by = list(ages), sum)
+    table_age_cases_sum <- aggregate(tableCases, by = list(tableAge), sum)
     colnames(table_age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
-    table_age_cases_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
+    table_age_cases_sum$Altersgruppe <- gsub("A", "", table_age_cases_sum$Altersgruppe)
     if(input$display == "absolute"){
       colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Anzahl der Gesamtinfektionen")
       table_age_cases_sum
     } else{
-      table_age_cases_sum$Gesamtinfektionen <- round(prop.table(age_cases_sum$Gesamtinfektionen)*100,2)
+      table_age_cases_sum$Gesamtinfektionen <- round(prop.table(table_age_cases_sum$Gesamtinfektionen)*100,2)
       colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Gesamtinfektionen in Prozent")
       table_age_cases_sum
     }
@@ -215,6 +225,31 @@ server <- function(input, output) {
                     colnames = c("Altersgruppe", "Weiblich infizierte"),
                     rownames = FALSE)
     })
+  
+  
+  # Bezirke
+  output$districtPlot <- renderPlot({
+    
+    selected_date <- as.Date(input$districtslider)
+    cases <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
+    districtNames <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Landkreis"]
+    districtNames <- sub("SK Berlin ", "", districtNames)
+    districtCases <- aggregate(cases, by = list(districtNames), sum)
+    colnames(districtCases) <- c("Bezirk", "Gesamtinfektionen")
+    
+    # http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
+    District_Case_Plot <-ggplot(data = districtCases, aes(x=Bezirk, y=Gesamtinfektionen, fill=Bezirk)) +
+      geom_bar(stat = "identity", position = position_dodge())+
+      geom_text(aes(label=Gesamtinfektionen), vjust=0.4, color="white",
+                position = position_dodge(0.5), size=3.5)+
+      scale_fill_brewer(palette = "Set3")+
+      coord_flip()+
+      theme_minimal()
+    
+    District_Case_Plot
+    
+  })
+  
 }
 
 # Run the application 
