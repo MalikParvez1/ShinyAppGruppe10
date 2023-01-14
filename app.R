@@ -35,10 +35,10 @@ ui <- dashboardPage(
   dashboardHeader(title = "SARS-CoV-2 in Berlin"),
   
   dashboardSidebar(
-    sidebarMenu(menuItem("Overview", tabName = "overview", icon = icon("list")),
+    sidebarMenu(menuItem("Overview", tabName = "overview"),
                 menuItem("Infizierte nach Alter", tabName = "infizierteNachAlter"),
                 menuItem("Infizierte nach Geschlecht", tabName = "infizierteNachGeschlecht"),
-                menuItem("Infizierte nach Bezirk", tabName = "infizierteNachBezirk", icon = icon("map")))
+                menuItem("Infizierte nach Bezirk", tabName = "infizierteNachBezirk"))
   ),
   
   dashboardBody(
@@ -61,7 +61,12 @@ ui <- dashboardPage(
       )
       ),
       tabItem(tabName = "infizierteNachAlter", h2("Infizierte nach Alter"),
-              selectInput("display", "Display:", c("Absolute Werte" = "absolute", "Relative Werte" = "relative")),
+              box(
+                selectInput("display", "Darstellungsart:", c("Absolute Werte" = "absWerte", "Relative Werte" = "relWerte")),
+              ),
+              box(
+                selectInput("display2", "Werteauswahl:", c("Infektionen" = "infection", "Tode" = "deathCase")),
+              ),
               fluidRow(
                 #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
                 column(width = 6,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%")),
@@ -73,6 +78,9 @@ ui <- dashboardPage(
                   selectInput(inputId = "geschlecht",
                               label = "Geschlecht auswählen:",
                               choices = c("Männlich" = "m", "Weiblich" = "w")),
+                  radioButtons(inputId = "relabs",
+                               label = "Wählen Sie eine Häufigkeit aus",
+                               choices = c("Absolute Häufigkeit" = "abs", "Relative Häufigkeit" = "rel"))
                 ),
                 mainPanel(
                   plotOutput("sexGroupPlot"),
@@ -157,11 +165,14 @@ server <- function(input, output) {
   output$ageGroupPlot <- renderPlot({
     ages <- covid_19_df$Altersgruppe
     cases <- covid_19_df$AnzahlFall
+    deathCases <- covid_19_df$AnzahlTodesfall
     age_cases_sum <- aggregate(cases, by = list(ages), sum)
+    age_death <- aggregate(deathCases, by = list(ages), sum)
     colnames(age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
-    age_cases_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
+    colnames(age_death) <- c("Altersgruppe", "Gesamttodesfälle")
     
-    if(input$display == "absolute"){
+    
+    if(input$display == "absWerte" && input$display2 == "infection"){
       # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
       Agegroup_Case_Plot<-ggplot(data = age_cases_sum, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
         geom_bar(stat = "identity", position = position_dodge())+
@@ -170,11 +181,29 @@ server <- function(input, output) {
         scale_fill_brewer(palette = "Blues")+
         theme_minimal()
       Agegroup_Case_Plot
-    } else {
-      propTable <- round(prop.table(age_cases_sum$Gesamtinfektionen)*100,2)
+    } else if(input$display == "relWerte" && input$display2 == "infection"){
+      age_cases_sum$Gesamtinfektionen <- round(prop.table(age_cases_sum$Gesamtinfektionen)*100,2)
       Agegroup_Case_Plot<-ggplot(data = age_cases_sum, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
         geom_bar(stat = "identity", position = position_dodge())+
-        geom_text(aes(label=propTable), vjust=1.6, color="white",
+        geom_text(aes(label=Gesamtinfektionen), vjust=1.6, color="white",
+                  position = position_dodge(0.9), size=3.5)+
+        scale_fill_brewer(palette = "Blues")+
+        theme_minimal()
+      Agegroup_Case_Plot
+    } else if(input$display == "absWerte" && input$display2 == "deathCase"){
+      # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
+      Agegroup_Case_Plot<-ggplot(data = age_death, aes(x=Altersgruppe, y=Gesamttodesfälle, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Gesamttodesfälle), vjust=1.6, color="white",
+                  position = position_dodge(0.9), size=3.5)+
+        scale_fill_brewer(palette = "Blues")+
+        theme_minimal()
+      Agegroup_Case_Plot
+    }else{
+      age_death$Gesamttodesfälle <- round(prop.table(age_death$Gesamttodesfälle)*100,2)
+      Agegroup_Case_Plot<-ggplot(data = age_death, aes(x=Altersgruppe, y=Gesamttodesfälle, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Gesamttodesfälle), vjust=1.6, color="white",
                   position = position_dodge(0.9), size=3.5)+
         scale_fill_brewer(palette = "Blues")+
         theme_minimal()
@@ -182,26 +211,34 @@ server <- function(input, output) {
     }
   })
   
-  
+  #Tabelle der Toten
   output$ageGroupTable <- renderTable({
     tableAge <- covid_19_df$Altersgruppe
     tableCases <- covid_19_df$AnzahlFall
+    tableDeaths <- covid_19_df$AnzahlTodesfall
     table_age_cases_sum <- aggregate(tableCases, by = list(tableAge), sum)
+    table_death_cases_sum <- aggregate(tableDeaths, by = list(tableAge), sum)
     colnames(table_age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
-    table_age_cases_sum$Altersgruppe <- gsub("A", "", table_age_cases_sum$Altersgruppe)
-    if(input$display == "absolute"){
+    colnames(table_death_cases_sum) <- c("Altersgruppe", "Gesamttodesfälle")
+    # table_age_cases_sum$Altersgruppe <- gsub("A", "", table_age_cases_sum$Altersgruppe)
+    if(input$display == "absWerte" && input$display2 == "infection"){
       colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Anzahl der Gesamtinfektionen")
       table_age_cases_sum
-    } else{
+    } else if (input$display == "relWerte" && input$display2 == "infection") {
       table_age_cases_sum$Gesamtinfektionen <- round(prop.table(table_age_cases_sum$Gesamtinfektionen)*100,2)
       colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Gesamtinfektionen in Prozent")
       table_age_cases_sum
+    } else if (input$display == "absWerte" && input$display2 == "deathCase") {
+      colnames(table_death_cases_sum) <- c("Altersgruppe in Jahren", "Anzahl der Gesamttodesfälle")
+      table_death_cases_sum
+    } else {
+      table_death_cases_sum$Gesamttodesfälle <- round(prop.table(table_death_cases_sum$Gesamttodesfälle)*100,2)
+      colnames(table_death_cases_sum) <- c("Altersgruppe in Jahren", "Gesamttodesfälle in Prozent")
+      table_death_cases_sum
     }
   })
   
   output$sexGroupPlot <- renderPlot({
-    age <- covid_19_df$Altersgruppe
-    cases <- covid_19_df$AnzahlFall
     data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
     data_infiziert_m <- subset(covid_19_df, Geschlecht=="M" ,select = c(Altersgruppe, AnzahlFall))
     data_w_agg <- aggregate(AnzahlFall ~ Altersgruppe, data_infiziert_w, FUN=sum)
@@ -209,21 +246,44 @@ server <- function(input, output) {
     data_m_agg <- aggregate(AnzahlFall ~ Altersgruppe, data_infiziert_m, FUN=sum)
     colnames(data_m_agg) <- c("Altersgruppe", "Gesamtinfektionen")
     
-    if(input$geschlecht == "w"){
-      ggplot(data = data_w_agg, aes(x=Altersgruppe, y=Gesamtinfektionen)) +
-        geom_bar(stat = "identity", color = "red", fill = "red") +
+    if(input$geschlecht == "w" && input$relabs == "abs"){
+      ggplot(data = data_w_agg, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
+        geom_bar(stat = "identity",position = "dodge", color = "red", fill = "red") +
+        geom_text(aes(label=Gesamtinfektionen), vjust=2, colour="white")+
         labs(
           title = "Infizierte nach Geschlecht",
-          x = "Anzahl der Infizierten",
-          y = "Altergruppen"
+          x = "Altersgruppen",
+          y = "Anzahl der Infizierten"
         )
-    }else{
-      ggplot(data = data_m_agg, aes(x=Altersgruppe, y=Gesamtinfektionen)) +
-        geom_bar(stat = "identity", color = "steelblue", fill = "steelblue") +
+    } else if(input$geschlecht == "w" && input$relabs == "rel"){
+      data_w_agg$Gesamtinfektionen <- round(prop.table(data_w_agg$Gesamtinfektionen)*100,2)
+      ggplot(data = data_w_agg, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", color = "red", fill = "red") +
+        geom_text(aes(label=Gesamtinfektionen), vjust=2, colour="white")+
         labs(
           title = "Infizierte nach Geschlecht",
-          x = "Anzahl der Infizierten",
-          y = "Altergruppen"
+          x = "Altersgruppen",
+          y = "Anzahl der Infizierten"
+        )
+    } else if(input$geschlecht == "m" && input$relabs == "rel"){
+      data_m_agg$Gesamtinfektionen <- round(prop.table(data_m_agg$Gesamtinfektionen)*100,2)
+      ggplot(data = data_m_agg, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", position = "dodge" ,color = "steelblue", fill = "steelblue") +
+        geom_text(aes(label=Gesamtinfektionen), vjust=2, colour="white")+
+        labs(
+          title = "Infizierte nach Geschlecht",
+          x = "Altersgruppen",
+          y = "Anzahl der Infizierten"
+        )
+    }
+    else{
+      ggplot(data = data_m_agg, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
+        geom_bar(stat = "identity", position = "dodge" ,color = "steelblue", fill = "steelblue") +
+        geom_text(aes(label=Gesamtinfektionen), vjust=2, colour="white")+
+        labs(
+          title = "Infizierte nach Geschlecht",
+          x = "Altersgruppen",
+          y = "Anzahl der Infizierten"
         )
     }
   })
