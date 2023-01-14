@@ -179,40 +179,39 @@ server <- function(input, output) {
   })
   
   output$sexGroupPlot <- renderPlot({
-    maennlich <- subset(alter, alter$Geschlecht=="M")
-    weiblich <- subset(alter, alter$Geschlecht=="W")
-    
-    #sortieren, um sicher zu sein
-    maennlich_sortiert <- maennlich[order(maennlich$Alter),]
-    weiblich_sortiert <- weiblich[order(weiblich$Alter),]
-    
-    #alterklasse simmulieren um darüber aggregieren zu koennen
-    gruppe <- c(rep("A00-A04",times=5), rep("A05-A14",times=10), rep("A15-A34",times=20), rep("A35-A59",times=25), rep("A60-A79",times=20),rep("A80+",times=21))
-    
-    #spalte hinzugefuegt
-    maennlich_sortiert$new = gruppe 
-    weiblich_sortiert$new  = gruppe
-    
-    #aggregation
-    maennlich_aggregiert <- aggregate(x=maennlich_sortiert$AnzahlBevoelkerung, by=list(maennlich_sortiert$new), FUN=sum)
-    weiblich_aggregiert <- aggregate(x=weiblich_sortiert$AnzahlBevoelkerung, by=list(weiblich_sortiert$new), FUN=sum)
-    
+    # altersgruppe <- covid_19_df$Altersgruppe
+    # infizierte_weiblich <- nrow(subset(covid_19_df, covid_19_df$Geschlecht == "W"))
+    # weiblich_altersgruppe_sum <- aggregate(infizierte_weiblich, by = list(altersgruppe), sum)
+    # colnames(weiblich_altersgruppe_sum) <- c("Altersgruppe", "Gesamtinfektionen")
+    # weiblich_altersgruppe_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
     
     #weiblich_aggregiert_nach_Altersgruppe <- weiblich_aggregiert
     
-    ggplot(data = weiblich_aggregiert, aes(x=weiblich_aggregiert$Group.1, y=weiblich_aggregiert$x)) + 
-      geom_bar(stat = "identity", color = "steelblue", fill = "steelblue") +
-      labs(
-        title = "Infizierte nach Geschlecht",
-        x = "Anzahl der Infizierten",
-        y = "Altergruppen"
-      )
+    # age_sex_plot <- ggplot(data = women_filter_agg, aes(x=, y=, fill=Geschlecht)) +
+    #   geom_bar(stat = "identity", position = position_dodge())+
+    #   ggtitle("Anzahl der Infizierten nach Geschlecht und Altersgruppe")
+    # age_sex_plot
+    
+    altersgruppe <- covid_19_df$Altersgruppe
+    women_filter <- subset(covid_19_df, covid_19_df$Geschlecht=="W")
+    men <- subset(covid_19_df, covid_19_df$Geschlecht=="M")
+    women_order <- women_filter[order(women_filter$Altersgruppe),]
+    men_order <- men[order(men$Altersgruppe),]
+    women_filter_agg <- aggregate(women_order, by=list(altersgruppe), sum)
+    colnames(women_filter_agg) <- c("Altersgruppe", "Geschlecht", "Gesamtinfektionen")
+    men_agg <- aggregate(men_order, by=list(altersgruppe), sum)
+    
+    ggplot(data = women_filter_agg, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Geschlecht)) +
+      geom_col(position = "dodge") +
+      ggtitle("Anzahl der Infizierten nach Geschlecht und Altersgruppe") +
+      xlab("Altersgruppe") + 
+      ylab("Anzahl Infizierte")
   })
   
   
   output$geschlechterTabelle = 
     DT::renderDataTable({
-      DT::datatable(covid_aggregiert_filter_m, 
+      DT::datatable(women_filter_agg, 
                     colnames = c("Altersgruppe", "Weiblich infizierte"),
                     rownames = FALSE)
     })
