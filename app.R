@@ -72,11 +72,14 @@ ui <- dashboardPage(
                 sidebarPanel(
                   selectInput(inputId = "geschlecht",
                               label = "Geschlecht auswählen:",
-                              choices = c("Männlich" = "männlich", "Weiblich" = "weiblich")),
+                              choices = c("Männlich" = "m", "Weiblich" = "w")),
                 ),
                 mainPanel(
                   plotOutput("sexGroupPlot"),
-                  DT::dataTableOutput("geschlechterTabelle")
+                  tabsetPanel(
+                    id="dataset",
+                    tabPanel("Männlich", DT::dataTableOutput("m_table")),
+                    tabPanel("weiblich", DT::dataTableOutput("w_table")))
                 )
               )),
       
@@ -196,42 +199,50 @@ server <- function(input, output) {
   })
   
   output$sexGroupPlot <- renderPlot({
-    # altersgruppe <- covid_19_df$Altersgruppe
-    # infizierte_weiblich <- nrow(subset(covid_19_df, covid_19_df$Geschlecht == "W"))
-    # weiblich_altersgruppe_sum <- aggregate(infizierte_weiblich, by = list(altersgruppe), sum)
-    # colnames(weiblich_altersgruppe_sum) <- c("Altersgruppe", "Gesamtinfektionen")
-    # weiblich_altersgruppe_sum$Altersgruppe <- gsub("A", "", age_cases_sum$Altersgruppe)
+    age <- covid_19_df$Altersgruppe
+    cases <- covid_19_df$AnzahlFall
+    data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
+    data_infiziert_m <- subset(covid_19_df, Geschlecht=="M" ,select = c(Altersgruppe, AnzahlFall))
+    data_w_agg <- aggregate(AnzahlFall ~ Altersgruppe, data_infiziert_w, FUN=sum)
+    colnames(data_w_agg) <- c("Altersgruppe", "Gesamtinfektionen")
+    data_m_agg <- aggregate(AnzahlFall ~ Altersgruppe, data_infiziert_m, FUN=sum)
+    colnames(data_m_agg) <- c("Altersgruppe", "Gesamtinfektionen")
     
-    #weiblich_aggregiert_nach_Altersgruppe <- weiblich_aggregiert
-    
-    # age_sex_plot <- ggplot(data = women_filter_agg, aes(x=, y=, fill=Geschlecht)) +
-    #   geom_bar(stat = "identity", position = position_dodge())+
-    #   ggtitle("Anzahl der Infizierten nach Geschlecht und Altersgruppe")
-    # age_sex_plot
-    
-    altersgruppe <- covid_19_df$Altersgruppe
-    women_filter <- subset(covid_19_df, covid_19_df$Geschlecht=="W")
-    men <- subset(covid_19_df, covid_19_df$Geschlecht=="M")
-    women_order <- women_filter[order(women_filter$Altersgruppe),]
-    men_order <- men[order(men$Altersgruppe),]
-    women_filter_agg <- aggregate(women_order, by=list(altersgruppe), sum)
-    colnames(women_filter_agg) <- c("Altersgruppe", "Geschlecht", "Gesamtinfektionen")
-    men_agg <- aggregate(men_order, by=list(altersgruppe), sum)
-    
-    ggplot(data = women_filter_agg, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Geschlecht)) +
-      geom_col(position = "dodge") +
-      ggtitle("Anzahl der Infizierten nach Geschlecht und Altersgruppe") +
-      xlab("Altersgruppe") + 
-      ylab("Anzahl Infizierte")
+    if(input$geschlecht == "w"){
+      ggplot(data = data_w_agg, aes(x=Altersgruppe, y=Gesamtinfektionen)) +
+        geom_bar(stat = "identity", color = "red", fill = "red") +
+        labs(
+          title = "Infizierte nach Geschlecht",
+          x = "Anzahl der Infizierten",
+          y = "Altergruppen"
+        )
+    }else{
+      ggplot(data = data_m_agg, aes(x=Altersgruppe, y=Gesamtinfektionen)) +
+        geom_bar(stat = "identity", color = "steelblue", fill = "steelblue") +
+        labs(
+          title = "Infizierte nach Geschlecht",
+          x = "Anzahl der Infizierten",
+          y = "Altergruppen"
+        )
+    }
   })
   
   
-  output$geschlechterTabelle = 
-    DT::renderDataTable({
-      DT::datatable(women_filter_agg, 
-                    colnames = c("Altersgruppe", "Weiblich infizierte"),
-                    rownames = FALSE)
-    })
+  age <- covid_19_df$Altersgruppe
+  cases <- covid_19_df$AnzahlFall
+  data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
+  data_infiziert_m <- subset(covid_19_df, Geschlecht=="M" ,select = c(Altersgruppe, AnzahlFall))
+  data_w_agg <- aggregate(AnzahlFall ~ Altersgruppe, data_infiziert_w, FUN=sum)
+  colnames(data_w_agg) <- c("Altersgruppe", "Gesamtinfektionen")
+  data_m_agg <- aggregate(AnzahlFall ~ Altersgruppe, data_infiziert_m, FUN=sum)
+  colnames(data_m_agg) <- c("Altersgruppe", "Gesamtinfektionen")
+  
+  output$m_table <- DT::renderDataTable(
+    DT::datatable(data_m_agg)
+  )
+  output$w_table <- DT::renderDataTable(
+    DT::datatable(data_w_agg)
+  )
   
   
   # Bezirke
