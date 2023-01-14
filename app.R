@@ -52,11 +52,11 @@ ui <- dashboardPage(
         box(plotOutput("lineplot")),
         
         box(
-          "Box content here", br(), "More box content",
-          sliderInput("slider", "Slider input:",
+          sliderInput("slider", "Datenbereich:",
                       min = min(unique_converted_dates),
                       max = max(unique_converted_dates),
                       value = max(unique_converted_dates)),
+          "Hier kann der gewünschte beobachtete Zeitraum eingestellt werden",
         )
       )
       ),
@@ -84,13 +84,20 @@ ui <- dashboardPage(
               fluidRow(
                 box(plotOutput("districtPlot"))
               ),
-              box(
-                "Box content here", br(), "More box content",
-                sliderInput("districtslider", "Slider input:",
+              fluidRow(              
+                box(
+                sliderInput("districtslider", "Datenbereich:",
                             min = min(unique_converted_dates),
                             max = max(unique_converted_dates),
                             value = max(unique_converted_dates)),
-              ))
+                "Hier kann der gewünschte beobachtete Zeitraum eingestellt werden",
+                ),
+                box(
+                  selectInput("district_displaymode", "Darstellungsart:", c("Absolute Werte" = "absolute", "Relative Werte" = "relative")),
+                ),
+                box(
+                  selectInput("district_displaymode2", "Werteauswahl:", c("Infektionen" = "districtCases", "Tode" = "districtDeaths")),
+                )))
     )
   )
 )
@@ -229,25 +236,55 @@ server <- function(input, output) {
   
   # Bezirke
   output$districtPlot <- renderPlot({
-    
     selected_date <- as.Date(input$districtslider)
     cases <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
+    deaths <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"]
     districtNames <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Landkreis"]
     districtNames <- sub("SK Berlin ", "", districtNames)
     districtCases <- aggregate(cases, by = list(districtNames), sum)
+    districtDeaths <- aggregate(deaths, by = list(districtNames), sum)
     colnames(districtCases) <- c("Bezirk", "Gesamtinfektionen")
-    
+    colnames(districtDeaths) <- c("Bezirk", "Tode")
     # http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/
-    District_Case_Plot <-ggplot(data = districtCases, aes(x=Bezirk, y=Gesamtinfektionen, fill=Bezirk)) +
-      geom_bar(stat = "identity", position = position_dodge())+
-      geom_text(aes(label=Gesamtinfektionen), vjust=0.4, color="white",
-                position = position_dodge(0.5), size=3.5)+
-      scale_fill_brewer(palette = "Set3")+
-      coord_flip()+
-      theme_minimal()
-    
-    District_Case_Plot
-    
+    if(input$district_displaymode == "absolute" && input$district_displaymode2 == "districtCases") {
+      District_Case_Plot <-ggplot(data = districtCases, aes(x=Bezirk, y=Gesamtinfektionen, fill=Bezirk)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Gesamtinfektionen), vjust=0.4, hjust=1.2, color="white",
+                  position = position_dodge(0.8), size=4.0)+
+        scale_fill_brewer(palette = "Paired")+
+        coord_flip()+
+        theme_minimal()
+      District_Case_Plot
+    } else if (input$district_displaymode == "relative" && input$district_displaymode2 == "districtCases") {
+      districtCases$Gesamtinfektionen <- round(prop.table(districtCases$Gesamtinfektionen)*100,2)
+      District_Case_Plot <-ggplot(data = districtCases, aes(x=Bezirk, y=Gesamtinfektionen, fill=Bezirk)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Gesamtinfektionen), vjust=0.4, hjust=1.2, color="white",
+                  position = position_dodge(0.5), size=4.0)+
+        scale_fill_brewer(palette = "Paired")+
+        coord_flip()+
+        theme_minimal()
+      District_Case_Plot
+    } else if (input$district_displaymode == "absolute" && input$district_displaymode2 == "districtDeaths") {
+      District_Case_Plot <-ggplot(data = districtDeaths, aes(x=Bezirk, y=Tode, fill=Bezirk)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Tode), vjust=0.4, hjust=1.2, color="white",
+                  position = position_dodge(0.8), size=4.0)+
+        scale_fill_brewer(palette = "Paired")+
+        coord_flip()+
+        theme_minimal()
+      District_Case_Plot
+    } else {
+      districtDeaths$Tode <- round(prop.table(districtDeaths$Tode)*100,2)
+      District_Case_Plot <-ggplot(data = districtDeaths, aes(x=Bezirk, y=Tode, fill=Bezirk)) +
+        geom_bar(stat = "identity", position = position_dodge())+
+        geom_text(aes(label=Tode), vjust=0.4, hjust=1.2, color="white",
+                  position = position_dodge(0.5), size=4.0)+
+        scale_fill_brewer(palette = "Paired")+
+        coord_flip()+
+        theme_minimal()
+      District_Case_Plot
+    }
   })
   
 }
