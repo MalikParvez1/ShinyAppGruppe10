@@ -62,15 +62,21 @@ ui <- dashboardPage(
       ),
       tabItem(tabName = "infizierteNachAlter", h2("Infektionen nach Alter"),
               box(
-                selectInput("display", "Darstellungsart:", c("Absolute Werte" = "absWerte", "Relative Werte" = "relWerte")),
+                sliderInput("ageslider", "Datenbereich:",
+                            min = min(unique_converted_dates),
+                            max = max(unique_converted_dates),
+                            value = max(unique_converted_dates)),
+                "Hier kann der gewünschte beobachtete Zeitraum eingestellt werden",
               ),
               box(
                 selectInput("display2", "Werteauswahl:", c("Infektionen" = "infection", "Tode" = "deathCase")),
+                selectInput("display", "Darstellungsart:", c("Absolute Werte" = "absWerte", "Relative Werte" = "relWerte")),
               ),
               fluidRow(
                 #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
                 box(column(width = 12,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%"))),
                 box(column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable"))))),
+                
       
       tabItem(tabName = "infizierteNachGeschlecht", h2("Infektionen nach Geschlecht"),
               sidebarLayout(
@@ -163,9 +169,10 @@ server <- function(input, output) {
   
   # Infizierte nach Alter
   output$ageGroupPlot <- renderPlot({
-    ages <- covid_19_df$Altersgruppe
-    cases <- covid_19_df$AnzahlFall
-    deathCases <- covid_19_df$AnzahlTodesfall
+    selected_date <- as.Date(input$ageslider)
+    ages <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Altersgruppe"]
+    cases <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
+    deathCases <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"]
     age_cases_sum <- aggregate(cases, by = list(ages), sum)
     age_death <- aggregate(deathCases, by = list(ages), sum)
     colnames(age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
@@ -212,9 +219,10 @@ server <- function(input, output) {
   })
   
   output$ageGroupTable <- renderTable({
-    tableAge <- covid_19_df$Altersgruppe
-    tableCases <- covid_19_df$AnzahlFall
-    tableDeaths <- covid_19_df$AnzahlTodesfall
+    selected_date <- as.Date(input$ageslider)
+    tableAge <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Altersgruppe"]
+    tableCases <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
+    tableDeaths <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlTodesfall"]
     table_age_cases_sum <- aggregate(tableCases, by = list(tableAge), sum)
     table_death_cases_sum <- aggregate(tableDeaths, by = list(tableAge), sum)
     colnames(table_age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
