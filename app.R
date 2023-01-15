@@ -94,7 +94,7 @@ ui <- dashboardPage(
                   tabsetPanel(
                     id="dataset",
                     tabPanel("Männlich", DT::dataTableOutput("m_table")),
-                    tabPanel("weiblich", DT::dataTableOutput("w_table")))
+                    tabPanel("Weiblich", DT::dataTableOutput("w_table")))
                 )
               )),
       
@@ -398,7 +398,7 @@ server <- function(input, output) {
                   position = position_dodge(0.9), size=2.5)+
         scale_fill_gradient(low = "#ff9a91", high = "#fc3d3d") +
         theme(axis.text.x = element_text(color = "transparent")) +
-        ggtitle("Infektionen pro 1000 Einwohner") +
+        ggtitle("Gesamtinfektionen pro 1000 Einwohner") +
         guides(fill = guide_colourbar(title = "Inzidenz"))
       districtperT
   } else {
