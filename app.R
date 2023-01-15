@@ -60,7 +60,7 @@ ui <- dashboardPage(
         )
       )
       ),
-      tabItem(tabName = "infizierteNachAlter", h2("Infizierte nach Alter"),
+      tabItem(tabName = "infizierteNachAlter", h2("Infektionen nach Alter"),
               box(
                 selectInput("display", "Darstellungsart:", c("Absolute Werte" = "absWerte", "Relative Werte" = "relWerte")),
               ),
@@ -69,10 +69,10 @@ ui <- dashboardPage(
               ),
               fluidRow(
                 #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
-                column(width = 6,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%")),
-                column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable")))),
+                box(column(width = 12,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%"))),
+                box(column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable"))))),
       
-      tabItem(tabName = "infizierteNachGeschlecht", h2("Covid-Infizierte nach Geschlecht"),
+      tabItem(tabName = "infizierteNachGeschlecht", h2("Infektionen nach Geschlecht"),
               sidebarLayout(
                 sidebarPanel(
                   selectInput(inputId = "geschlecht",
@@ -91,7 +91,7 @@ ui <- dashboardPage(
                 )
               )),
       
-      tabItem(tabName = "infizierteNachBezirk",h2("Content Infizierte nach Bezirk"),
+      tabItem(tabName = "infizierteNachBezirk",h2("Infektionen nach Bezirk"),
               fluidRow(
                 box(plotOutput("districtPlot")),
                 box(plotOutput("districtPlot2"))
@@ -211,7 +211,6 @@ server <- function(input, output) {
     }
   })
   
-  #Tabelle der Toten
   output$ageGroupTable <- renderTable({
     tableAge <- covid_19_df$Altersgruppe
     tableCases <- covid_19_df$AnzahlFall
@@ -237,6 +236,8 @@ server <- function(input, output) {
       table_death_cases_sum
     }
   })
+
+  # Geschlecht
   
   output$sexGroupPlot <- renderPlot({
     data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
@@ -288,7 +289,6 @@ server <- function(input, output) {
     }
   })
   
-  
   age <- covid_19_df$Altersgruppe
   cases <- covid_19_df$AnzahlFall
   data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
@@ -305,8 +305,8 @@ server <- function(input, output) {
     DT::datatable(data_w_agg)
   )
   
-  
   # Bezirke
+
   output$districtPlot <- renderPlot({
     selected_date <- as.Date(input$districtslider)
     cases <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
@@ -348,7 +348,7 @@ server <- function(input, output) {
       District_Case_Plot
     } else {
       districtDeaths$Tode <- round(prop.table(districtDeaths$Tode)*100,2)
-      District_Case_Plot <-ggplot(data = districtDeaths, aes(x=Bezirk, y=Tode, fill=Bezirk)) +
+      District_Case_Plot <- ggplot(data = districtDeaths, aes(x=Bezirk, y=Tode, fill=Bezirk)) +
         geom_bar(stat = "identity", position = position_dodge())+
         geom_text(aes(label=Tode), vjust=0.4, hjust=1.2, color="white",
                   position = position_dodge(0.5), size=4.0)+
@@ -389,7 +389,6 @@ server <- function(input, output) {
         theme(axis.text.x = element_text(color = "transparent")) +
         ggtitle("Infektionen pro 1000 Einwohner") +
         guides(fill = guide_colourbar(title = "Inzidenz"))
-      
       districtperT
   } else {
       districtDeaths$Tode <- round(districtDeaths$Tode / einwohner * 1000, 1)
@@ -407,15 +406,9 @@ server <- function(input, output) {
         theme(axis.text.x = element_text(color = "transparent")) +
         ggtitle("Tode pro 1000 Einwohner") +
         guides(fill = guide_colourbar(title = "Inzidenz"))
-      
-      
-      
-      
         districtperT
   }
   })
-    
-  
 }
 
 # Run the application 
