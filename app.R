@@ -6,6 +6,9 @@
 #
 #    http://shiny.rstudio.com/
 #
+# Online version: https://bremaldul.shinyapps.io/shinyappgruppe10/
+# @author Eshmam Dulal, Parvez Malik, Niklas Sebastian Brecht
+#
 
 library(shiny)
 library(shinydashboard)
@@ -16,26 +19,24 @@ library(lubridate)
 library(readr)
 library(DT)
 
+# Read CSV
 covid_19_df <- na.omit(read.csv("./RKI_COVID19_Berlin.csv"))
 
-# Dataframes
+# Date-Dataframes
 dates <- covid_19_df$Meldedatum
 converted_dates <- ymd_hms(dates)
 unique_converted_dates <- unique(ymd_hms(dates))
 
 
 
-# Define UI for application that draws a histogram
+# Define UI for application 
 ui <- dashboardPage(
-  # tags$script(src="https://kit.fontawesome.com/a00c56db4c.js"),
-  # tags$div(
-  #   tags$i(class = "fa-regular fa-face-smile")
-  # ),
+
   skin = "blue",
   dashboardHeader(title = "SARS-CoV-2 in Berlin"),
   
   dashboardSidebar(
-    sidebarMenu(menuItem("Overview", tabName = "overview"),
+    sidebarMenu(menuItem("Überblick", tabName = "overview"),
                 menuItem("Infizierte nach Alter", tabName = "infizierteNachAlter"),
                 menuItem("Infizierte nach Geschlecht", tabName = "infizierteNachGeschlecht"),
                 menuItem("Infizierte nach Bezirk", tabName = "infizierteNachBezirk"))
@@ -73,7 +74,7 @@ ui <- dashboardPage(
                 selectInput("display", "Darstellungsart:", c("Absolute Werte" = "absWerte", "Relative Werte" = "relWerte")),
               ),
               fluidRow(
-                #https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
+                # https://stackoverflow.com/questions/69926478/figure-layout-within-shiny-app-in-r-making-the-layout-more-concise
                 box(column(width = 12,h3("Grafische Darstellung"), plotOutput("ageGroupPlot", width="100%"))),
                 box(column(width = 6,h3("Tabellenwerte"), tableOutput("ageGroupTable"))))),
                 
@@ -122,9 +123,11 @@ ui <- dashboardPage(
 
 
 
-# Define server logic required to draw a histogram
+# Define server logic 
 server <- function(input, output) {
   
+  # Overview
+  # https://plotly.com/ggplot2/geom_line/
   output$lineplot <- renderPlot({
     selected_date <- as.Date(input$slider)
     Infektionen <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"]
@@ -147,7 +150,7 @@ server <- function(input, output) {
   
   
   
-  # Overview
+  # Inspiration https://github.com/gadenbuie/tweet-conf-dash
   output$infoBox_cases <- renderInfoBox({
     selected_date <- as.Date(input$slider)
     cases <- sum(covid_19_df[covid_19_df$Meldedatum <= selected_date, "AnzahlFall"])
@@ -167,7 +170,7 @@ server <- function(input, output) {
   })
   
   
-  # Infizierte nach Alter
+  # Infektionen nach Alter
   output$ageGroupPlot <- renderPlot({
     selected_date <- as.Date(input$ageslider)
     ages <- covid_19_df[covid_19_df$Meldedatum <= selected_date, "Altersgruppe"]
@@ -178,9 +181,10 @@ server <- function(input, output) {
     colnames(age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
     colnames(age_death) <- c("Altersgruppe", "Gesamttodesfälle")
     
-    
+    # Gilt für alle ggplot2 Barplots
+    # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
+
     if(input$display == "absWerte" && input$display2 == "infection"){
-      # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
       Agegroup_Case_Plot<-ggplot(data = age_cases_sum, aes(x=Altersgruppe, y=Gesamtinfektionen, fill=Altersgruppe)) +
         geom_bar(stat = "identity", position = position_dodge())+
         geom_text(aes(label=Gesamtinfektionen), vjust=1.6, color="white",
@@ -198,7 +202,6 @@ server <- function(input, output) {
         theme_minimal()
       Agegroup_Case_Plot
     } else if(input$display == "absWerte" && input$display2 == "deathCase"){
-      # http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
       Agegroup_Case_Plot<-ggplot(data = age_death, aes(x=Altersgruppe, y=Gesamttodesfälle, fill=Altersgruppe)) +
         geom_bar(stat = "identity", position = position_dodge())+
         geom_text(aes(label=Gesamttodesfälle), vjust=1.6, color="white",
@@ -227,7 +230,7 @@ server <- function(input, output) {
     table_death_cases_sum <- aggregate(tableDeaths, by = list(tableAge), sum)
     colnames(table_age_cases_sum) <- c("Altersgruppe", "Gesamtinfektionen")
     colnames(table_death_cases_sum) <- c("Altersgruppe", "Gesamttodesfälle")
-    # table_age_cases_sum$Altersgruppe <- gsub("A", "", table_age_cases_sum$Altersgruppe)
+    table_age_cases_sum$Altersgruppe <- gsub("A", "", table_age_cases_sum$Altersgruppe)
     if(input$display == "absWerte" && input$display2 == "infection"){
       colnames(table_age_cases_sum) <- c("Altersgruppe in Jahren", "Anzahl der Gesamtinfektionen")
       table_age_cases_sum
@@ -245,7 +248,7 @@ server <- function(input, output) {
     }
   })
 
-  # Geschlecht
+  # Infektionen nach Geschlecht
   
   output$sexGroupPlot <- renderPlot({
     data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
@@ -313,7 +316,7 @@ server <- function(input, output) {
     DT::datatable(data_w_agg)
   )
   
-  # Bezirke
+  # Infektionen nach Bezirken
 
   output$districtPlot <- renderPlot({
     selected_date <- as.Date(input$districtslider)
@@ -377,8 +380,8 @@ server <- function(input, output) {
     districtDeaths <- aggregate(deaths, by = list(districtNames), sum)
     colnames(districtCases) <- c("Bezirk", "Inzidenz")
     colnames(districtDeaths) <- c("Bezirk", "Tode")
+    # Einwohnerdaten aus gegebener SB_A01-05-00_2022h01_BE.xlsx
     einwohner <- c(339405, 291851, 304485, 281566, 391831, 329037, 418249, 267398, 251588, 310454, 351567, 284450)
-    
     
     if(input$district_displaymode2 == "districtCases") {
       districtCases$Inzidenz <- round(districtCases$Inzidenz / einwohner * 1000, 1)
@@ -400,7 +403,6 @@ server <- function(input, output) {
       districtperT
   } else {
       districtDeaths$Tode <- round(districtDeaths$Tode / einwohner * 1000, 1)
-      # Hat die Idee gebracht, um aufsteigend zu sortieren. https://stackoverflow.com/questions/3744178/ggplot2-sorting-a-plot
       districtDeaths <- districtDeaths[order(districtDeaths$Tode),]
       districtDeaths$Bezirk <- factor(districtDeaths$Bezirk, levels = districtDeaths$Bezirk)
       

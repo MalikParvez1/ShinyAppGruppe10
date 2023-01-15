@@ -5,9 +5,10 @@ account: bremaldul
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 7957982
-bundleId: 6722969
+bundleId: 6733945
 url: https://bremaldul.shinyapps.io/shinyappgruppe10/
-when: 1673466622.65397
-lastSyncTime: 1673466622.65398
+when: 1673724830.48027
+lastSyncTime: 1673724830.48029
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: .RData|berlin.shp|bezirksgrenzen.geojson|map.html
