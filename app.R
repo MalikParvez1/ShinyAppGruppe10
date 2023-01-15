@@ -458,8 +458,7 @@ server <- function(input, output) {
     cw <- subset(district_date_case, Landkreis == "SK Berlin Charlottenburg-Wilmersdorf")
     
     id <- covid_19_df %>%
-      group_by(Meldedatum) %>%
-      summarise(cases = sum(AnzahlFall, na.rm=TRUE))
+      aggregate(AnzahlFall ~ Meldedatum, sum, na.rm=TRUE)
     
     # https://stackoverflow.com/questions/23518605/add-an-index-numeric-id-column-to-large-data-frame
     id$ID <- seq.int(nrow(id))
@@ -505,7 +504,7 @@ server <- function(input, output) {
       districtPlot3 <- ggplot()
       
       # https://stackoverflow.com/questions/22915337/if-else-condition-in-ggplot-to-add-an-extra-layer
-      # Hat nur die Idee gebracht, das man if Statements verwenden kann, um so nach und nach einen Plot
+      # Hat nur die Idee gebracht, das man if Statements verwenden kann, um so nach und nach einen Plot zu konfigurieren
       if("SK Berlin Charlottenburg-Wilmersdorf" %in% input$districtselection) {
         districtPlot3 <- districtPlot3 + geom_line(data = cw, aes(x = ID, y = cases), col = "red")
       }
@@ -519,7 +518,7 @@ server <- function(input, output) {
         districtPlot3 <- districtPlot3 + geom_line(data = mt, aes(x = ID, y = cases), col = "purple")
       }
       if("SK Berlin Pankow" %in% input$districtselection) {
-        districtPlot3p <- districtPlot3 + geom_line(data = pk, aes(x = ID, y =cases), col = "yellow")
+        districtPlot3 <- districtPlot3 + geom_line(data = pk, aes(x = ID, y =cases), col = "yellow")
       }
       if("SK Berlin Spandau" %in% input$districtselection) {
         districtPlot3 <- districtPlot3 + geom_line(data = sp, aes(x = ID, y = cases), col = "orange")
@@ -546,7 +545,7 @@ server <- function(input, output) {
         districtPlot3 <- districtPlot3 + geom_line(data = cw, aes(x = ID, y = cases), col = "black")
       }
       districtPlot3 <- districtPlot3+
-           labs(x="Zeitraum", y="Infektionen")
+           labs(x="Zeitraum", y="Infektionen", title = "Infektionen im zeitlichen Verlauf")
 
       districtPlot3
   })
