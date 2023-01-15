@@ -116,7 +116,17 @@ ui <- dashboardPage(
                 ),
                 box(
                   selectInput("district_displaymode2", "Werteauswahl:", c("Infektionen" = "districtCases", "Tode" = "districtDeaths")),
-                )))
+                )),
+              fluidRow(
+                box(plotOutput("disctrictPlot3")),
+                box(
+                  checkboxGroupInput("districtselection", "Waehle beliebige Bezirke um sie miteinander zu vergleichen:", 
+                                     c("SK Berlin Lichtenberg", "SK Berlin Mitte", "SK Berlin Pankow", "SK Berlin Spandau",
+                                       "SK Berlin Steglitz-Zehlendorf", "SK Berlin Neukölln", "SK Berlin Tempelhof-Schöneberg",
+                                       "SK Berlin Treptow-Köpenick", "SK Berlin Marzahn-Hellersdorf", "SK Berlin Reinickendorf",
+                                       "SK Berlin Charlottenburg-Wilmersdorf", "SK Berlin Friedrichshain-Kreuzberg"))
+                )
+              ))
     )
   )
 )
@@ -419,6 +429,128 @@ server <- function(input, output) {
         districtperT
   }
   })
+  
+  output$disctrictPlot3 <- renderPlot({
+    district_date_case <- covid_19_df %>%
+      group_by(Landkreis, Meldedatum) %>%
+      summarise(cases = sum(AnzahlFall, na.rm = TRUE))
+    
+    
+    # Entschuldigen Sie das Chaos. Wir haben stundenlang an for-Schleifen verschwendet. Leider haben wir es nun so gelöst.
+    
+    districts <- c("SK Berlin Lichtenberg", "SK Berlin Mitte", "SK Berlin Pankow", "SK Berlin Spandau",
+                 "SK Berlin Steglitz-Zehlendorf", "SK Berlin Neukölln", "SK Berlin Tempelhof-Schöneberg",
+                 "SK Berlin Treptow-Köpenick", "SK Berlin Marzahn-Hellersdorf", "SK Berlin Reinickendorf",
+                 "SK Berlin Charlottenburg-Wilmersdorf", "SK Berlin Friedrichshain-Kreuzberg")
+    
+    cw <- subset(district_date_case, Landkreis == "SK Berlin Charlottenburg-Wilmersdorf")
+    fk <- subset(district_date_case, Landkreis == "SK Berlin Friedrichshain-Kreuzberg")
+    lb <- subset(district_date_case, Landkreis == "SK Berlin Lichtenberg")
+    mt <- subset(district_date_case, Landkreis == "SK Berlin Mitte")
+    pk <- subset(district_date_case, Landkreis == "SK Berlin Pankow")
+    sp <- subset(district_date_case, Landkreis == "SK Berlin Spandau")
+    sz <- subset(district_date_case, Landkreis == "SK Berlin Steglitz-Zehlendorf")
+    nk <- subset(district_date_case, Landkreis == "SK Berlin Neukölln")
+    th <- subset(district_date_case, Landkreis == "SK Berlin Tempelhof-Schöneberg")
+    tk <- subset(district_date_case, Landkreis == "SK Berlin Treptow-Köpenick")
+    mz <- subset(district_date_case, Landkreis == "SK Berlin Marzahn-Hellersdorf")
+    rd <- subset(district_date_case, Landkreis == "SK Berlin Reinickendorf")
+    cw <- subset(district_date_case, Landkreis == "SK Berlin Charlottenburg-Wilmersdorf")
+    
+    id <- covid_19_df %>%
+      group_by(Meldedatum) %>%
+      summarise(cases = sum(AnzahlFall, na.rm=TRUE))
+    
+    # https://stackoverflow.com/questions/23518605/add-an-index-numeric-id-column-to-large-data-frame
+    id$ID <- seq.int(nrow(id))
+    cw$ID <- seq.int(nrow(cw))
+    
+    id$ID <- seq.int(nrow(id))
+    fk$ID <- seq.int(nrow(fk))
+    
+    id$ID <- seq.int(nrow(id))
+    lb$ID <- seq.int(nrow(lb))
+    
+    id$ID <- seq.int(nrow(id))
+    mt$ID <- seq.int(nrow(mt))
+    
+    id$ID <- seq.int(nrow(id))
+    pk$ID <- seq.int(nrow(pk))
+    
+    id$ID <- seq.int(nrow(id))
+    sp$ID <- seq.int(nrow(sp))
+    
+    id$ID <- seq.int(nrow(id))
+    sz$ID <- seq.int(nrow(sz))
+    
+    id$ID <- seq.int(nrow(id))
+    nk$ID <- seq.int(nrow(nk))
+    
+    id$ID <- seq.int(nrow(id))
+    th$ID <- seq.int(nrow(th))
+    
+    id$ID <- seq.int(nrow(id))
+    tk$ID <- seq.int(nrow(tk))
+    
+    id$ID <- seq.int(nrow(id))
+    mz$ID <- seq.int(nrow(mz))
+    
+    id$ID <- seq.int(nrow(id))
+    rd$ID <- seq.int(nrow(rd))
+    
+    id$ID <- seq.int(nrow(id))
+    cw$ID <- seq.int(nrow(cw))
+   
+    
+      districtPlot3 <- ggplot()
+      
+      # https://stackoverflow.com/questions/22915337/if-else-condition-in-ggplot-to-add-an-extra-layer
+      # Hat nur die Idee gebracht, das man if Statements verwenden kann, um so nach und nach einen Plot
+      if("SK Berlin Charlottenburg-Wilmersdorf" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = cw, aes(x = ID, y = cases), col = "red")
+      }
+      if("SK Berlin Friedrichshain-Kreuzberg" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = fk, aes(x = ID, y = cases), col = "blue")
+      }
+      if("SK Berlin Lichtenberg" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = lb, aes(x = ID, y = cases), col = "green")
+      }
+      if("SK Berlin Mitte" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = mt, aes(x = ID, y = cases), col = "purple")
+      }
+      if("SK Berlin Pankow" %in% input$districtselection) {
+        districtPlot3p <- districtPlot3 + geom_line(data = pk, aes(x = ID, y =cases), col = "yellow")
+      }
+      if("SK Berlin Spandau" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = sp, aes(x = ID, y = cases), col = "orange")
+      }
+      if("SK Berlin Steglitz-Zehlendorf" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = sz, aes(x = ID, y = cases), col = "darkgreen")
+      }
+      if("SK Berlin Neukölln" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = nk, aes(x = ID, y = cases), col = "darkblue")
+      }
+      if("SK Berlin Tempelhof-Schöneberg" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = th, aes(x = ID, y = cases), col = "darkred")
+      }
+      if("SK Berlin Treptow-Köpenick" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = tk, aes(x = ID, y = cases), col = "darkgray")
+      }
+      if("SK Berlin Marzahn-Hellersdorf" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = mz, aes(x = ID, y = cases), col = "lightblue")
+      }
+      if("SK Berlin Reinickendorf" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = rd, aes(x = ID, y = cases), col = "lightgreen")
+      }
+      if("SK Berlin Charlottenburg-Wilmersdorf" %in% input$districtselection) {
+        districtPlot3 <- districtPlot3 + geom_line(data = cw, aes(x = ID, y = cases), col = "black")
+      }
+      districtPlot3 <- districtPlot3+
+           labs(x="Zeitraum", y="Infektionen")
+
+      districtPlot3
+  })
+    
 }
 
 # Run the application 
