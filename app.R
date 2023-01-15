@@ -260,6 +260,7 @@ server <- function(input, output) {
 
   # Infektionen nach Geschlecht
   
+  #https://towardsdatascience.com/end-to-end-shiny-app-tutorial-using-nyc-mortality-data-d29ad99506b9
   output$sexGroupPlot <- renderPlot({
     data_infiziert_w <- subset(covid_19_df, Geschlecht=="W" ,select = c(Altersgruppe, AnzahlFall))
     data_infiziert_m <- subset(covid_19_df, Geschlecht=="M" ,select = c(Altersgruppe, AnzahlFall))
